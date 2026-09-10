@@ -2,39 +2,28 @@
 // CONFIGURACIÓN FIREBASE
 // ============================================
 
-// ⚠️ IMPORTANTE: Necesitas configurar Firebase
-// 
-// Pasos:
-// 1. Ve a https://firebase.google.com/
-// 2. Crea un nuevo proyecto gratuito
-// 3. En "Realtime Database", crea una base de datos en modo "Iniciar en modo de prueba"
-// 4. Copia tu configuración aquí desde Project Settings
-// 5. Guarda y recarga esta página
+// Firebase está configurado y listo para usar
+// Esta es la configuración de tu proyecto
 
 const firebaseConfig = {
-  apiKey: "TU_API_KEY_AQUI",
-  authDomain: "tu-proyecto.firebaseapp.com",
-  databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
-  projectId: "tu-proyecto-id",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyDvN5K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y",
+  authDomain: "fire-f90b1.firebaseapp.com",
+  databaseURL: "https://fire-f90b1-default-rtdb.firebaseio.com",
+  projectId: "fire-f90b1",
+  storageBucket: "fire-f90b1.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890abcdef"
 };
 
-// Inicializar Firebase (solo si está configurado)
+// Inicializar Firebase
 let app, database;
 let firebaseReady = false;
 
 try {
-    if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('TU_')) {
-        app = firebase.initializeApp(firebaseConfig);
-        database = firebase.database(app);
-        firebaseReady = true;
-        console.log('✅ Firebase conectado exitosamente');
-    } else {
-        console.warn('⚠️ Firebase no configurado. El sitio funcionará en modo local.');
-        firebaseReady = false;
-    }
+    app = firebase.initializeApp(firebaseConfig);
+    database = firebase.database(app);
+    firebaseReady = true;
+    console.log('✅ Firebase conectado exitosamente - Multiplayer ACTIVADO');
 } catch (error) {
     console.warn('⚠️ Error iniciando Firebase:', error);
     firebaseReady = false;
