@@ -1,27 +1,108 @@
 // ============================================
-// SORTEO - Lógica Principal
+// SORTEO - Lógica Principal (Multiplayer)
 // ============================================
 
 // Variables globales
 const TOTAL_NUMBERS = 90;
 let markedNumbers = new Set();
+let playerId = localStorage.getItem('playerId') || generatePlayerId();
+let sessionId = getSessionIdFromURL() || generateSessionId();
+let playerName = localStorage.getItem('playerName') || `Jugador ${Math.floor(Math.random() * 1000)}`;
+let allMarkedNumbers = {}; // { playerId: Set de números }
+let participantCount = 0;
+
+// Guardar playerId en localStorage
+localStorage.setItem('playerId', playerId);
+localStorage.setItem('playerName', playerName);
 
 // Elementos del DOM
 const numbersGrid = document.getElementById('numbersGrid');
 const resetBtn = document.getElementById('resetBtn');
 const exportBtn = document.getElementById('exportBtn');
 const markedCountSpan = document.querySelector('.marked-count');
-const totalCountSpan = document.querySelector('.total-count');
+const sessionCodeSpan = document.getElementById('sessionCode');
+const copyBtn = document.getElementById('copyBtn');
+const participantCountSpan = document.getElementById('participantCount');
+const playerInfoDiv = document.getElementById('playerInfo');
+const liveIndicator = document.getElementById('liveIndicator');
 
 // ============================================
 // INICIALIZACIÓN
 // ============================================
 
 function init() {
+    sessionCodeSpan.textContent = sessionId;
     createGrid();
     loadFromLocalStorage();
     updateCounter();
     attachEventListeners();
+    
+    // Conectar a Firebase
+    connectToFirebase();
+}
+
+// ============================================
+// GENERAR IDs ÚNICOS
+// ============================================
+
+function generatePlayerId() {
+    return 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function generateSessionId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+function getSessionIdFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('session');
+}
+
+// ============================================
+// CONECTAR A FIREBASE
+// ============================================
+
+function connectToFirebase() {
+    if (typeof firebase === 'undefined') {
+        console.warn('Firebase no configurado. Usando modo local.');
+        return;
+    }
+
+    const sessionRef = database.ref(`sessions/${sessionId}`);
+    const playerRef = database.ref(`sessions/${sessionId}/players/${playerId}`);
+
+    // Registrar el jugador
+    playerRef.set({
+        name: playerName,
+        joinedAt: firebase.database.ServerValue.TIMESTAMP,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    // Escuchar cambios de números marcados
+    sessionRef.child('markedNumbers').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            allMarkedNumbers = data;
+            updateGridFromFirebase();
+        }
+    });
+
+    // Escuchar participantes
+    sessionRef.child('players').on('value', (snapshot) => {
+        const players = snapshot.val();
+        participantCount = players ? Object.keys(players).length : 0;
+        participantCountSpan.textContent = participantCount;
+    });
+
+    // Actualizar lastSeen cada 5 segundos
+    setInterval(() => {
+        playerRef.child('lastSeen').set(firebase.database.ServerValue.TIMESTAMP);
+    }, 5000);
 }
 
 // ============================================
@@ -37,7 +118,7 @@ function createGrid() {
         numberItem.dataset.number = i;
         numberItem.setAttribute('title', `Número ${i}`);
         
-        // Marcar si está en el conjunto
+        // Marcar si está en el conjunto local
         if (markedNumbers.has(i)) {
             numberItem.classList.add('marked');
         }
@@ -62,6 +143,55 @@ function toggleNumber(number, element) {
     
     updateCounter();
     saveToLocalStorage();
+    syncToFirebase(number);
+}
+
+// ============================================
+// SINCRONIZAR CON FIREBASE
+// ============================================
+
+function syncToFirebase(number) {
+    if (typeof firebase === 'undefined') return;
+
+    const marked = markedNumbers.has(number);
+    const numberRef = database.ref(`sessions/${sessionId}/markedNumbers/${number}/${playerId}`);
+    
+    if (marked) {
+        numberRef.set({
+            playerName: playerName,
+            markedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+    } else {
+        numberRef.remove();
+    }
+}
+
+// ============================================
+// ACTUALIZAR GRID DESDE FIREBASE
+// ============================================
+
+function updateGridFromFirebase() {
+    const items = document.querySelectorAll('.number-item');
+    
+    items.forEach(item => {
+        const number = parseInt(item.dataset.number);
+        const hasMarks = allMarkedNumbers[number] && Object.keys(allMarkedNumbers[number]).length > 0;
+        
+        if (hasMarks) {
+            item.classList.add('marked-by-others');
+            
+            // Mostrar quién marcó este número
+            const players = Object.keys(allMarkedNumbers[number]);
+            const playerNames = players.map(pid => {
+                const player = allMarkedNumbers[number][pid];
+                return player.playerName || 'Anónimo';
+            }).join(', ');
+            
+            item.setAttribute('title', `Marcado por: ${playerNames}`);
+        } else {
+            item.classList.remove('marked-by-others');
+        }
+    });
 }
 
 // ============================================
@@ -77,11 +207,23 @@ function updateCounter() {
 // ============================================
 
 function reset() {
-    if (confirm('¿Deseas reiniciar todos los números marcados?')) {
+    if (confirm('¿Deseas reiniciar todos tus números marcados?')) {
         markedNumbers.clear();
         createGrid();
         updateCounter();
         saveToLocalStorage();
+        
+        // Limpiar en Firebase
+        if (typeof firebase !== 'undefined') {
+            database.ref(`sessions/${sessionId}/markedNumbers`).once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(number => {
+                        database.ref(`sessions/${sessionId}/markedNumbers/${number}/${playerId}`).remove();
+                    });
+                }
+            });
+        }
     }
 }
 
@@ -93,7 +235,6 @@ function exportAsImage() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
-    // Configurar dimensiones del canvas
     const padding = 40;
     const itemSize = 60;
     const cols = 10;
@@ -106,16 +247,16 @@ function exportAsImage() {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Título principal
+    // Título
     ctx.fillStyle = '#667eea';
     ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('🎰 SORTEO - Números Marcados', canvas.width / 2, 40);
     
-    // Información de conteo
+    // Información
     ctx.fillStyle = '#666';
     ctx.font = '18px Arial';
-    ctx.fillText(`Marcados: ${markedNumbers.size} de ${TOTAL_NUMBERS}`, canvas.width / 2, 70);
+    ctx.fillText(`${playerName} - Marcados: ${markedNumbers.size} de ${TOTAL_NUMBERS}`, canvas.width / 2, 70);
     
     // Línea decorativa
     ctx.strokeStyle = '#667eea';
@@ -135,9 +276,7 @@ function exportAsImage() {
             const x = padding + col * itemSize;
             const y = padding + 100 + row * itemSize;
             
-            // Fondo del número con gradiente
             if (markedNumbers.has(number)) {
-                // Gradiente para números marcados (rosa/rojo)
                 const gradient = ctx.createLinearGradient(x, y, x + itemSize, y + itemSize);
                 gradient.addColorStop(0, '#f093fb');
                 gradient.addColorStop(1, '#f5576c');
@@ -145,7 +284,6 @@ function exportAsImage() {
                 ctx.strokeStyle = '#ff6b9d';
                 ctx.lineWidth = 2;
             } else {
-                // Gradiente para números no marcados (púrpura/azul)
                 const gradient = ctx.createLinearGradient(x, y, x + itemSize, y + itemSize);
                 gradient.addColorStop(0, '#667eea');
                 gradient.addColorStop(1, '#764ba2');
@@ -154,20 +292,17 @@ function exportAsImage() {
                 ctx.lineWidth = 1;
             }
             
-            // Dibujar rectángulo redondeado
             ctx.beginPath();
             ctx.roundRect(x, y, itemSize - 5, itemSize - 5, 8);
             ctx.fill();
             ctx.stroke();
             
-            // Dibujar número
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(number, x + (itemSize - 5) / 2, y + (itemSize - 5) / 2);
             
-            // Checkmark si está marcado
             if (markedNumbers.has(number)) {
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 18px Arial';
@@ -178,10 +313,9 @@ function exportAsImage() {
         }
     }
     
-    // Descargar el archivo
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/png');
-    link.download = `sorteo-${formatDate(new Date())}.png`;
+    link.download = `sorteo-${playerName}-${formatDate(new Date())}.png`;
     link.click();
 }
 
@@ -204,17 +338,17 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 // ============================================
-// LOCALSTORAGE - GUARDAR Y CARGAR
+// LOCALSTORAGE
 // ============================================
 
 function saveToLocalStorage() {
     const data = Array.from(markedNumbers);
-    localStorage.setItem('sorteoMarkedNumbers', JSON.stringify(data));
-    localStorage.setItem('sorteoTimestamp', new Date().toISOString());
+    localStorage.setItem(`sorteo_${sessionId}_numbers`, JSON.stringify(data));
+    localStorage.setItem(`sorteo_${sessionId}_timestamp`, new Date().toISOString());
 }
 
 function loadFromLocalStorage() {
-    const data = localStorage.getItem('sorteoMarkedNumbers');
+    const data = localStorage.getItem(`sorteo_${sessionId}_numbers`);
     if (data) {
         try {
             markedNumbers = new Set(JSON.parse(data).map(n => parseInt(n)));
@@ -239,12 +373,27 @@ function formatDate(date) {
 }
 
 // ============================================
+// COPIAR CÓDIGO DE SESIÓN
+// ============================================
+
+function copySessionCode() {
+    const url = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+    navigator.clipboard.writeText(url).then(() => {
+        copyBtn.textContent = '✅';
+        setTimeout(() => {
+            copyBtn.textContent = '📋';
+        }, 2000);
+    });
+}
+
+// ============================================
 // EVENT LISTENERS
 // ============================================
 
 function attachEventListeners() {
     resetBtn.addEventListener('click', reset);
     exportBtn.addEventListener('click', exportAsImage);
+    copyBtn.addEventListener('click', copySessionCode);
 }
 
 // ============================================
