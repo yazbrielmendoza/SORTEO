@@ -31,7 +31,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 950px;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -108,8 +108,8 @@
             padding: 20px;
             border-radius: 12px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+            gap: 8px;
         }
 
         .num-btn {
@@ -117,8 +117,8 @@
             color: var(--text-main);
             border: 2px solid transparent;
             border-radius: 8px;
-            height: 60px;
-            font-size: 1.2rem;
+            height: 55px;
+            font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -177,12 +177,12 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Números Marcados</div>
-                <div class="stat-value"><span id="marked-count">0</span> / 90</div>
+                <div class="stat-value"><span id="marked-count">0</span> / 100</div>
             </div>
         </div>
 
         <div class="grid-container" id="grid">
-            <!-- Los 90 botones se generarán con JS -->
+            <!-- Los 100 botones se generarán con JS -->
         </div>
 
         <div style="text-align: center;">
@@ -210,9 +210,12 @@
         const sorteoRef = database.ref('sorteo');
         const presenciaRef = database.ref('presencia');
 
-        // 3. Generar la cuadrícula de 1 a 90 en el HTML
+        // TOTAL DE NÚMEROS
+        const TOTAL_NUMEROS = 100;
+
+        // 3. Generar la cuadrícula de 1 a 100 en el HTML
         const grid = document.getElementById('grid');
-        for (let i = 1; i <= 90; i++) {
+        for (let i = 1; i <= TOTAL_NUMEROS; i++) {
             const btn = document.createElement('button');
             btn.className = 'num-btn';
             btn.id = `num-${i}`;
@@ -238,7 +241,7 @@
             const marcados = snapshot.val() || {};
             let contadorMarcados = 0;
 
-            for (let i = 1; i <= 90; i++) {
+            for (let i = 1; i <= TOTAL_NUMEROS; i++) {
                 const btn = document.getElementById(`num-${i}`);
                 if (marcados[i]) {
                     btn.classList.add('marcado');
@@ -256,7 +259,7 @@
         connectedRef.on('value', snap => {
             if (snap.val() === true) {
                 const con = presenciaRef.push();
-                con.onDisconnect().remove(); // Se borra al cerrar/desconectarse
+                con.onDisconnect().remove();
                 con.set(true);
             }
         });
