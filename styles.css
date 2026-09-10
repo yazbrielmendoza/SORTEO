@@ -48,6 +48,7 @@ body {
     padding: 40px 20px;
     text-align: center;
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    position: relative;
 }
 
 .header h1 {
@@ -63,6 +64,87 @@ body {
     font-weight: 300;
     opacity: 0.95;
     letter-spacing: 1px;
+    margin-bottom: 15px;
+}
+
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.live-indicator .pulse {
+    width: 8px;
+    height: 8px;
+    background: #43e97b;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* ============================================
+   SESSION INFO
+   ============================================ */
+
+.session-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    padding: 20px;
+    background: #f0f2f5;
+    border-bottom: 2px solid #e0e2e5;
+    flex-wrap: wrap;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+}
+
+.info-item .label {
+    font-weight: 600;
+    color: #666;
+}
+
+.info-item .value {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 5px;
+    min-width: 100px;
+    text-align: center;
+}
+
+.btn-copy {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.btn-copy:hover {
+    transform: scale(1.2);
 }
 
 /* ============================================
@@ -187,13 +269,19 @@ body {
     left: 100%;
 }
 
-/* Estado Marcado */
+/* Estado Marcado Localmente */
 .number-item.marked {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     box-shadow: 0 8px 25px rgba(240, 147, 251, 0.5);
     transform: scale(1.05);
     border-color: #ff6b9d;
     animation: markPulse 0.4s ease;
+}
+
+/* Estado Marcado por Otros */
+.number-item.marked-by-others {
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.7);
+    border-color: #667eea;
 }
 
 @keyframes markPulse {
@@ -215,6 +303,19 @@ body {
     font-weight: 900;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   PLAYER INFO
+   ============================================ */
+
+.player-info {
+    padding: 20px;
+    background: #f8f9fa;
+    border-top: 2px solid #e9ecef;
+    min-height: 40px;
+    font-size: 0.9rem;
+    color: #666;
 }
 
 /* ============================================
@@ -254,6 +355,16 @@ body {
     .counter {
         width: 100%;
         max-width: 200px;
+    }
+
+    .session-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .info-item {
+        width: 100%;
+        justify-content: space-between;
     }
 }
 
@@ -308,18 +419,15 @@ body {
    EFECTOS ESPECIALES
    ============================================ */
 
-/* Scroll suave */
 html {
     scroll-behavior: smooth;
 }
 
-/* Selección de texto */
 ::selection {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
 }
 
-/* Scrollbar personalizada */
 ::-webkit-scrollbar {
     width: 10px;
 }
