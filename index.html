@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sorteo - Marcador interactivo de números para rifas y sorteos">
+    <meta name="description" content="Sorteo - Marcador interactivo de números para rifas y sorteos en tiempo real">
     <meta name="theme-color" content="#667eea">
-    <title>🎰 SORTEO - Marcador de Números</title>
+    <title>🎰 SORTEO - Marcador de Números (En Vivo)</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,7 +14,23 @@
         <header class="header">
             <h1>🎰 SORTEO</h1>
             <p class="subtitle">Marca los números ganadores</p>
+            <div class="live-indicator" id="liveIndicator">
+                <span class="pulse"></span> En Vivo
+            </div>
         </header>
+
+        <!-- Session Info -->
+        <div class="session-info">
+            <div class="info-item">
+                <span class="label">Código de Sesión:</span>
+                <span class="value" id="sessionCode">Generando...</span>
+                <button class="btn-copy" id="copyBtn" title="Copiar link">📋</button>
+            </div>
+            <div class="info-item">
+                <span class="label">Participantes en línea:</span>
+                <span class="value" id="participantCount">0</span>
+            </div>
+        </div>
 
         <!-- Controls -->
         <div class="controls">
@@ -30,12 +46,22 @@
             <!-- Los números se generarán con JavaScript -->
         </div>
 
+        <!-- Player Info -->
+        <div class="player-info" id="playerInfo">
+            <!-- Se muestra qué jugador marcó cada número -->
+        </div>
+
         <!-- Footer -->
         <footer class="footer">
-            <p>✨ Haz clic en los números para marcarlos como ganadores</p>
+            <p>✨ Haz clic en los números para marcarlos - ¡Los demás verán tu selección en vivo!</p>
         </footer>
     </div>
 
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+    
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
