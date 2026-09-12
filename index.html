@@ -211,11 +211,11 @@
         const presenciaRef = database.ref('presencia');
 
         // TOTAL DE NÚMEROS
-        const TOTAL_NUMEROS = 100;
+        const TOTAL_NUMEROS = 200;
 
-        // 3. Generar la cuadrícula de 1 a 100 en el HTML
+        // 3. Generar la cuadrícula de 101 a 200 en el HTML
         const grid = document.getElementById('grid');
-        for (let i = 1; i <= TOTAL_NUMEROS; i++) {
+        for (let i = 101; i <= TOTAL_NUMEROS; i++) {
             const btn = document.createElement('button');
             btn.className = 'num-btn';
             btn.id = `num-${i}`;
